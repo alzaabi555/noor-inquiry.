@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة نور - بطاقة الدخول الذكية</title>
+    <title>منصة بنور - بطاقة الدخول الذكية</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <style>
         :root {
             --primary: #4F46E5;
@@ -40,7 +44,7 @@
             text-align: center;
             position: relative;
             overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.4s ease;
         }
 
         .icon-header {
@@ -59,7 +63,6 @@
         .greeting { font-size: 16px; font-weight: 700; color: var(--secondary); margin-bottom: 5px; }
         p.subtitle { font-size: 15px; color: var(--text-muted); margin-bottom: 30px; line-height: 1.6; }
 
-        /* نموذج الإدخال */
         .input-wrapper { position: relative; margin-bottom: 25px; }
         .input-wrapper input {
             width: 100%;
@@ -96,7 +99,6 @@
         }
         button.btn-main:hover { transform: translateY(-2px); box-shadow: 0 15px 25px rgba(79, 70, 229, 0.3); }
 
-        /* قسم النتيجة */
         #resultSection { display: none; }
         .student-name { font-size: 20px; font-weight: 800; margin: 15px 0; color: #111827; }
         
@@ -137,11 +139,13 @@
 
         .action-buttons {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             margin-top: 20px;
         }
+        
         .btn-action {
-            flex: 1;
+            flex: 1 1 calc(50% - 5px);
             padding: 12px;
             border-radius: 12px;
             font-weight: 700;
@@ -155,8 +159,11 @@
             text-decoration: none;
             font-family: inherit;
         }
+        
         .btn-whatsapp { background-color: #DCF8C6; color: #075E54; }
         .btn-platform { background-color: #DBEAFE; color: #1E40AF; }
+        .btn-save { background-color: #FEF3C7; color: #D97706; }
+        .btn-print { background-color: #F3F4F6; color: #4B5563; }
         
         .btn-reset {
             margin-top: 20px;
@@ -169,6 +176,13 @@
         }
 
         #errorMessage { color: #DC2626; font-size: 14px; margin-top: 15px; display: none; font-weight: 500;}
+
+        /* إعدادات الطباعة (إخفاء الأزرار عند طباعة الورقة) */
+        @media print {
+            body { background: white; }
+            .card { box-shadow: none; max-width: 100%; border: 2px solid #000; }
+            .action-buttons, .btn-reset, .btn-copy { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -192,49 +206,58 @@
         </div>
 
         <div id="resultSection">
-            <div class="icon-header">🎉</div>
-            <h3 class="student-name" id="resStudentName">---</h3>
-            <p class="subtitle" style="margin-bottom: 15px;">تم استخراج بيانات الدخول بنجاح!</p>
+            <div id="captureArea" style="background-color: white; padding: 15px; border-radius: 16px;">
+                <div class="icon-header">🎉</div>
+                <h3 class="student-name" id="resStudentName">---</h3>
+                <p class="subtitle" style="margin-bottom: 15px;">بيانات الدخول المعتمدة</p>
 
-            <div class="credential-box">
-                <div class="cred-item">
-                    <div class="cred-info">
-                        <span class="cred-label">اسم المستخدم</span>
-                        <span class="cred-value" id="resUsername">---</span>
+                <div class="credential-box">
+                    <div class="cred-item">
+                        <div class="cred-info">
+                            <span class="cred-label">اسم المستخدم</span>
+                            <span class="cred-value" id="resUsername">---</span>
+                        </div>
+                        <button class="btn-copy" onclick="copyToClipboard('resUsername', this)">نسخ</button>
                     </div>
-                    <button class="btn-copy" onclick="copyToClipboard('resUsername', this)">نسخ</button>
-                </div>
-                
-                <div class="cred-item">
-                    <div class="cred-info">
-                        <span class="cred-label">كلمة المرور</span>
-                        <span class="cred-value" id="resPassword">---</span>
+                    
+                    <div class="cred-item">
+                        <div class="cred-info">
+                            <span class="cred-label">كلمة المرور</span>
+                            <span class="cred-value" id="resPassword">---</span>
+                        </div>
+                        <button class="btn-copy" onclick="copyToClipboard('resPassword', this)">نسخ</button>
                     </div>
-                    <button class="btn-copy" onclick="copyToClipboard('resPassword', this)">نسخ</button>
                 </div>
             </div>
 
-            <div class="action-buttons">
+            <div class="action-buttons" id="actionButtons">
+                <button class="btn-action btn-save" onclick="saveAsImage()">
+                    <span style="font-size: 20px;">📸</span>
+                    حفظ كصورة
+                </button>
+                <button class="btn-action btn-print" onclick="window.print()">
+                    <span style="font-size: 20px;">🖨️</span>
+                    طباعة
+                </button>
                 <a href="https://banoor.om" target="_blank" class="btn-action btn-platform">
                     <span style="font-size: 20px;">🌐</span>
                     دخول للمنصة
                 </a>
                 <button class="btn-action btn-whatsapp" onclick="shareViaWhatsApp()">
                     <span style="font-size: 20px;">💬</span>
-                    مشاركة العائلة
+                    مشاركة
                 </button>
             </div>
 
-            <button class="btn-reset" onclick="resetForm()">البحث عن طالب آخر</button>
+            <button class="btn-reset" id="resetBtn" onclick="resetForm()">البحث عن طالب آخر</button>
         </div>
 
     </div>
 
     <script>
-        // ⚠️ رابط تطبيق الويب الخاص بك (Google Apps Script)
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxb7pGmD5oKpJ1i1YQ7086EmdIqIGs_sV3LN29TASwJVLZogaN9F_tkX0A7QK8cI0o/exec";
+        // ⚠️ ضع رابط جوجل شيت هنا
+       const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxb7pGmD5oKpJ1i1YQ7086EmdIqIGs_sV3LN29TASwJVLZogaN9F_tkX0A7QK8cI0o/exec";
 
-        // تحديد التحية بناءً على الوقت
         window.onload = () => {
             const hour = new Date().getHours();
             const greetingObj = document.getElementById('timeGreeting');
@@ -249,7 +272,7 @@
             const errorMessage = document.getElementById('errorMessage');
 
             if (!civilIdInput) {
-                errorMessage.innerText = "الرجاء إدخال الرقم المدني الجميل أولاً 😊";
+                errorMessage.innerText = "الرجاء إدخال الرقم المدني أولاً 😊";
                 errorMessage.style.display = 'block';
                 return;
             }
@@ -275,7 +298,6 @@
                     document.getElementById('resUsername').innerText = result.data.username;
                     document.getElementById('resPassword').innerText = result.data.password;
 
-                    // إطلاق الألعاب النارية (Confetti) 🎊
                     confetti({
                         particleCount: 150,
                         spread: 70,
@@ -289,7 +311,7 @@
                 }
 
             } catch (error) {
-                errorMessage.innerText = "يبدو أن هناك ضغط على الشبكة، يرجى المحاولة بعد لحظات.";
+                errorMessage.innerText = "حدث خطأ في الاتصال، يرجى المحاولة بعد لحظات.";
                 errorMessage.style.display = 'block';
             } finally {
                 btn.disabled = false;
@@ -297,7 +319,6 @@
             }
         }
 
-        // دالة النسخ الذكي
         function copyToClipboard(elementId, btnElement) {
             const textToCopy = document.getElementById(elementId).innerText;
             navigator.clipboard.writeText(textToCopy).then(() => {
@@ -314,17 +335,35 @@
             });
         }
 
-        // دالة تحضير رسالة الواتساب
         function shareViaWhatsApp() {
             const sName = document.getElementById('resStudentName').innerText;
             const uName = document.getElementById('resUsername').innerText;
             const pass = document.getElementById('resPassword').innerText;
+            const message = `مرحباً، هذه بيانات الدخول لمنصة نور لـ ${sName}\n\n👤 اسم المستخدم: ${uName}\n🔑 كلمة المرور: ${pass}\n\n🌐 رابط المنصة: https://banoor.om`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
+        // دالة حفظ البطاقة كصورة
+        function saveAsImage() {
+            const captureArea = document.getElementById('captureArea');
+            const buttonsToHide = document.querySelectorAll('.btn-copy');
             
-            const message = `مرحباً، هذه بيانات الدخول لمنصة بنور لـ ${sName}\n\n👤 اسم المستخدم: ${uName}\n🔑 كلمة المرور: ${pass}\n\n🌐 رابط المنصة: https://banoor.om`;
-            
-            // ترميز النص ليتوافق مع الروابط
-            const encodedMessage = encodeURIComponent(message);
-            window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+            // إخفاء أزرار النسخ مؤقتاً لكي لا تظهر في الصورة الملتقطة
+            buttonsToHide.forEach(btn => btn.style.display = 'none');
+
+            html2canvas(captureArea, {
+                scale: 2, // رفع جودة الصورة
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                // إعادة إظهار أزرار النسخ
+                buttonsToHide.forEach(btn => btn.style.display = 'block');
+
+                // إنشاء رابط التحميل للصورة
+                const link = document.createElement('a');
+                link.download = 'بيانات_منصة_نور.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
         }
 
         function resetForm() {
